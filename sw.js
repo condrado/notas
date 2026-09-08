@@ -1,11 +1,11 @@
-const CACHE_NAME = 'notas-locales-v1';
+const CACHE_NAME = 'notas-locales-v3';
 const APP_SHELL = [
   './',
   './index.html',
   './style.css',
   './app.js',
   './manifest.webmanifest',
-  './icon.svg',
+  './logo-n-no-borde.png',
 ];
 
 self.addEventListener('install', (event) => {

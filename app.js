@@ -178,11 +178,18 @@ async function openNotesFolder() {
   try {
     const storedHandle = await getStoredDirectoryHandle().catch(() => null);
     const pickerOptions = { id: NOTES_DIRECTORY_NAME, mode: 'readwrite' };
-    if (storedHandle?.name === NOTES_DIRECTORY_NAME) pickerOptions.startIn = storedHandle;
+    if (storedHandle) pickerOptions.startIn = storedHandle;
     const selectedHandle = await window.showDirectoryPicker(pickerOptions);
-    const handle = selectedHandle.name === NOTES_DIRECTORY_NAME
-      ? selectedHandle
-      : await selectedHandle.getDirectoryHandle(NOTES_DIRECTORY_NAME);
+    let handle = selectedHandle;
+    if (selectedHandle.name !== NOTES_DIRECTORY_NAME) {
+      try {
+        handle = await selectedHandle.getDirectoryHandle(NOTES_DIRECTORY_NAME);
+      } catch (error) {
+        if (error.name !== 'NotFoundError') throw error;
+        showToast(`No existe ${NOTES_DIRECTORY_NAME}/. Elige ahora la carpeta donde guardar tus notas.`);
+        handle = await window.showDirectoryPicker({ id: NOTES_DIRECTORY_NAME, mode: 'readwrite' });
+      }
+    }
     await activateNotesFolder(handle, true);
     await storeDirectoryHandle(handle);
   } catch (error) {
@@ -198,7 +205,7 @@ async function openNotesFolder() {
 function restoreNotesFolder() {
   getStoredDirectoryHandle()
     .then((handle) => {
-      if (handle?.name !== NOTES_DIRECTORY_NAME) return null;
+      if (!handle) return null;
       return handle.queryPermission({ mode: 'readwrite' }).then((permission) => {
         if (permission === 'granted') return activateNotesFolder(handle);
         return null;
