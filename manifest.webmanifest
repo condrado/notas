@@ -1,0 +1,19 @@
+{
+  "name": "Notas locales",
+  "short_name": "Notas",
+  "description": "Aplicacion local para escribir y organizar notas.",
+  "lang": "es",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#f6f7f9",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

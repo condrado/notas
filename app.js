@@ -3,6 +3,8 @@ const state = {
   notes: [],
   folders: [],
   groupColors: {},
+  noteOrder: [],
+  draggedNote: null,
   collapsedFolders: new Set(),
   currentNote: null,
   saveTimer: null,
@@ -42,11 +44,16 @@ const elements = {
   toast: document.querySelector('#toast'),
 };
 
+const Font = Quill.import('formats/font');
+Font.whitelist = ['sans-serif', 'serif', 'monospace', 'code'];
+Quill.register(Font, true);
+
 const quill = new Quill('#editor', {
   theme: 'snow',
   placeholder: 'Empieza a escribir...',
   modules: {
     toolbar: [
+      [{ font: ['sans-serif', 'serif', 'monospace', 'code'] }],
       [{ header: [1, 2, 3, false] }],
       ['bold', 'italic', 'underline', 'strike'],
       [{ list: 'ordered' }, { list: 'bullet' }],
@@ -65,6 +72,16 @@ const quill = new Quill('#editor', {
     },
   },
 });
+
+if ('serviceWorker' in navigator && ['http:', 'https:'].includes(window.location.protocol)) {
+  window.addEventListener('load', async () => {
+    try {
+      await navigator.serviceWorker.register('./sw.js');
+    } catch (error) {
+      console.warn('No se pudo registrar la aplicación instalable.', error);
+    }
+  });
+}
 
 function setSaveStatus(message, type = '') {
   elements.saveStatus.textContent = message;
@@ -91,7 +108,7 @@ function noteTitleFromFileName(fileName) {
 
 function formatDate(timestamp) {
   if (!timestamp) return 'Sin fecha';
-  return new Intl.DateTimeFormat('es-ES', { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(timestamp));
+  return new Intl.DateTimeFormat('es-ES', { day: 'numeric', month: 'numeric', year: '2-digit' }).format(new Date(timestamp));
 }
 
 function isJsonFile(fileName) {
@@ -207,7 +224,7 @@ async function loadNotes() {
         await collectNotes(handle, name, loadedNotes);
       }
     }
-    loadedNotes.sort((first, second) => first.folder.localeCompare(second.folder) || second.modified - first.modified || first.title.localeCompare(second.title));
+    loadedNotes.sort(compareNotes);
     state.notes = loadedNotes;
     folders.sort((first, second) => first.name.localeCompare(second.name));
     state.folders = folders;
@@ -217,6 +234,28 @@ async function loadNotes() {
     console.error('No se pudieron leer las notas de la carpeta.', error);
     showToast('No se pudieron leer las notas de la carpeta.', true);
   }
+}
+
+function noteKey(note) {
+  return `${note.folder}/${note.name}`;
+}
+
+function compareNotes(first, second) {
+  const folderComparison = first.folder.localeCompare(second.folder);
+  if (folderComparison !== 0) return folderComparison;
+  const firstOrder = state.noteOrder.indexOf(noteKey(first));
+  const secondOrder = state.noteOrder.indexOf(noteKey(second));
+  if (firstOrder !== -1 || secondOrder !== -1) {
+    if (firstOrder === -1) return 1;
+    if (secondOrder === -1) return -1;
+    if (firstOrder !== secondOrder) return firstOrder - secondOrder;
+  }
+  return second.modified - first.modified || first.title.localeCompare(second.title);
+}
+
+function saveNoteOrder() {
+  state.noteOrder = state.notes.map(noteKey);
+  return saveGroupColors();
 }
 
 async function collectNotes(directoryHandle, folder, loadedNotes) {
@@ -255,29 +294,80 @@ function renderNotes() {
 
   elements.notesList.append(createFolderLabel('General'));
   let currentFolder = '';
+  let hasRenderedNotesGroup = false;
   filteredNotes.forEach((note) => {
     if (note.folder !== currentFolder) {
+      if (hasRenderedNotesGroup) elements.notesList.append(createNoteDropZone(currentFolder));
       currentFolder = note.folder;
       if (currentFolder) {
         elements.notesList.append(createFolderLabel(currentFolder));
       }
+      hasRenderedNotesGroup = true;
     }
     if (state.collapsedFolders.has(note.folder)) return;
     const button = document.createElement('button');
     button.type = 'button';
+    button.draggable = true;
     button.className = `note-item${state.currentNote?.name === note.name && state.currentNote?.folder === note.folder ? ' active' : ''}`;
+    button.style.setProperty('--group-color', state.groupColors[note.folder] || '#73777d');
     button.innerHTML = `<span class="note-item-title"></span><span class="note-item-date"></span>`;
     button.querySelector('.note-item-title').textContent = note.title;
     button.querySelector('.note-item-date').textContent = formatDate(note.modified);
     button.addEventListener('click', () => openNote(note));
+    button.addEventListener('dragstart', (event) => {
+      state.draggedNote = note;
+      button.classList.add('dragging');
+      event.dataTransfer.effectAllowed = 'move';
+      event.dataTransfer.setData('text/plain', noteKey(note));
+    });
+    button.addEventListener('dragend', () => {
+      state.draggedNote = null;
+      button.classList.remove('dragging');
+      document.querySelectorAll('.note-item, .note-group-label').forEach((element) => element.classList.remove('drag-over'));
+    });
+    button.addEventListener('dragover', (event) => {
+      if (state.draggedNote?.folder !== note.folder || state.draggedNote === note) return;
+      event.preventDefault();
+      button.classList.add('drag-over');
+    });
+    button.addEventListener('dragleave', () => button.classList.remove('drag-over'));
+    button.addEventListener('drop', async (event) => {
+      event.preventDefault();
+      button.classList.remove('drag-over');
+      if (state.draggedNote?.folder === note.folder && state.draggedNote !== note) {
+        await reorderNote(state.draggedNote, note);
+      }
+    });
     elements.notesList.append(button);
   });
+  if (hasRenderedNotesGroup) elements.notesList.append(createNoteDropZone(currentFolder));
 
   state.folders
     .filter((folder) => !filteredNotes.some((note) => note.folder === folder.name))
     .forEach((folder) => elements.notesList.append(createFolderLabel(folder.name)));
 
   lucide.createIcons();
+}
+
+function createNoteDropZone(folderName) {
+  const dropZone = document.createElement('div');
+  dropZone.className = 'note-drop-zone';
+  dropZone.dataset.folder = folderName;
+  dropZone.style.setProperty('--group-color', state.groupColors[folderName] || '#73777d');
+  dropZone.addEventListener('dragover', (event) => {
+    if (state.draggedNote?.folder !== folderName) return;
+    event.preventDefault();
+    dropZone.classList.add('drag-over');
+  });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+  dropZone.addEventListener('drop', async (event) => {
+    event.preventDefault();
+    dropZone.classList.remove('drag-over');
+    if (state.draggedNote?.folder === folderName) {
+      await moveNoteToEnd(state.draggedNote);
+    }
+  });
+  return dropZone;
 }
 
 function createFolderLabel(folderName) {
@@ -289,6 +379,19 @@ function createFolderLabel(folderName) {
   groupLabel.style.setProperty('--group-color', groupColor);
   groupLabel.tabIndex = 0;
   groupLabel.setAttribute('role', 'button');
+  groupLabel.addEventListener('dragover', (event) => {
+    if (!state.draggedNote || state.draggedNote.folder === folderKey) return;
+    event.preventDefault();
+    groupLabel.classList.add('drag-over');
+  });
+  groupLabel.addEventListener('dragleave', () => groupLabel.classList.remove('drag-over'));
+  groupLabel.addEventListener('drop', async (event) => {
+    event.preventDefault();
+    groupLabel.classList.remove('drag-over');
+    if (state.draggedNote && state.draggedNote.folder !== folderKey) {
+      await moveNoteEntry(state.draggedNote, folderKey);
+    }
+  });
   groupLabel.setAttribute('aria-expanded', String(!isCollapsed));
   groupLabel.addEventListener('click', () => {
     if (state.collapsedFolders.has(folderKey)) state.collapsedFolders.delete(folderKey);
@@ -500,39 +603,72 @@ async function deleteFolder(folderName) {
   }
 }
 
+async function reorderNote(draggedNote, targetNote) {
+  const notesInGroup = state.notes.filter((note) => note.folder === draggedNote.folder && note !== draggedNote);
+  const targetIndex = notesInGroup.indexOf(targetNote);
+  if (targetIndex === -1) return;
+  notesInGroup.splice(targetIndex, 0, draggedNote);
+  let groupIndex = 0;
+  state.notes = state.notes.map((note) => {
+    if (note.folder !== draggedNote.folder) return note;
+    return notesInGroup[groupIndex++];
+  });
+  await saveNoteOrder();
+  renderNotes();
+}
+
+async function moveNoteToEnd(draggedNote) {
+  const notesInGroup = state.notes.filter((note) => note.folder === draggedNote.folder && note !== draggedNote);
+  notesInGroup.push(draggedNote);
+  let groupIndex = 0;
+  state.notes = state.notes.map((note) => {
+    if (note.folder !== draggedNote.folder) return note;
+    return notesInGroup[groupIndex++];
+  });
+  await saveNoteOrder();
+  renderNotes();
+}
+
+async function moveNoteEntry(noteEntry, targetFolder) {
+  if (!state.directoryHandle || targetFolder === noteEntry.folder) return;
+  if (state.currentNote?.name === noteEntry.name && state.currentNote?.folder === noteEntry.folder && state.isDirty) {
+    await saveCurrentNote();
+  }
+  const target = targetFolder
+    ? state.folders.find((folder) => folder.name === targetFolder)
+    : { directoryHandle: state.directoryHandle, name: '' };
+  if (!target) throw new Error('El grupo de destino no existe.');
+
+  const { note } = await readNote(noteEntry);
+  const targetName = await getAvailableFileName(note.title || noteTitleFromFileName(noteEntry.name), '', target.directoryHandle);
+  const targetHandle = await target.directoryHandle.getFileHandle(targetName, { create: true });
+  setSaveStatus('Moviendo...', 'saving');
+  await writeFile(targetHandle, note);
+  await noteEntry.directoryHandle.removeEntry(noteEntry.name);
+
+  if (state.currentNote?.name === noteEntry.name && state.currentNote?.folder === noteEntry.folder) {
+    state.currentNote = { name: targetName, folder: targetFolder, directoryHandle: target.directoryHandle, fileHandle: targetHandle, note };
+    elements.currentNoteLabel.textContent = targetFolder ? `${targetFolder}/${targetName}` : targetName;
+    updateFolderSelect(targetFolder);
+  }
+  state.noteOrder = state.noteOrder.filter((key) => key !== noteKey(noteEntry));
+  await loadNotes();
+  await saveNoteOrder();
+  setSaveStatus('Guardado ahora');
+  showToast(`Nota movida a ${targetFolder || 'General'}.`);
+}
+
 async function moveCurrentNote(event) {
   if (!state.currentNote || !state.directoryHandle) return;
   const targetFolder = event.target.value;
   if (targetFolder === state.currentNote.folder) return;
-  const target = targetFolder
-    ? state.folders.find((folder) => folder.name === targetFolder)
-    : { directoryHandle: state.directoryHandle, name: '' };
-  if (!target) return;
 
   try {
     if (!(await verifyPermission(state.directoryHandle, true))) {
       throw new Error('El permiso para mover la nota fue denegado.');
     }
-    const title = elements.title.value.trim() || 'Nota sin título';
-    const note = {
-      version: 1,
-      title,
-      content: quill.getContents(),
-      createdAt: state.currentNote.note.createdAt || Date.now(),
-      updatedAt: Date.now(),
-    };
-    const targetName = await getAvailableFileName(title, '', target.directoryHandle);
-    const targetHandle = await target.directoryHandle.getFileHandle(targetName, { create: true });
-    setSaveStatus('Moviendo...', 'saving');
-    await writeFile(targetHandle, note);
-    await state.currentNote.directoryHandle.removeEntry(state.currentNote.name);
-    state.currentNote = { name: targetName, folder: targetFolder, directoryHandle: target.directoryHandle, fileHandle: targetHandle, note };
+    await moveNoteEntry(state.currentNote, targetFolder);
     state.isDirty = false;
-    elements.currentNoteLabel.textContent = targetFolder ? `${targetFolder}/${targetName}` : targetName;
-    updateFolderSelect(targetFolder);
-    setSaveStatus('Guardado ahora');
-    await loadNotes();
-    showToast(`Nota movida a ${targetFolder || 'General'}.`);
   } catch (error) {
     elements.folderSelect.value = state.currentNote.folder;
     console.error('No se pudo cambiar el grupo de la nota.', error);
@@ -586,7 +722,9 @@ async function loadGroupColors() {
     const configHandle = await state.directoryHandle.getFileHandle(GROUP_CONFIG_FILE, { create: true });
     const configFile = await configHandle.getFile();
     const configText = await configFile.text();
-    state.groupColors = configText.trim() ? JSON.parse(configText).groupColors || {} : {};
+    const config = configText.trim() ? JSON.parse(configText) : {};
+    state.groupColors = config.groupColors || {};
+    state.noteOrder = Array.isArray(config.noteOrder) ? config.noteOrder : [];
   } catch (error) {
     state.groupColors = {};
     console.warn('No se pudo cargar la configuración de colores.', error);
@@ -595,7 +733,7 @@ async function loadGroupColors() {
 
 async function saveGroupColors() {
   const configHandle = await state.directoryHandle.getFileHandle(GROUP_CONFIG_FILE, { create: true });
-  await writeFile(configHandle, { version: 1, groupColors: state.groupColors });
+  await writeFile(configHandle, { version: 1, groupColors: state.groupColors, noteOrder: state.noteOrder });
 }
 
 async function getAvailableFileName(title, currentName, directoryHandle) {
@@ -643,11 +781,15 @@ async function writeCurrentNote() {
     state.currentNote.name = desiredName;
     state.currentNote.fileHandle = targetHandle;
     elements.currentNoteLabel.textContent = desiredName;
+    const previousKey = `${state.currentNote.folder}/${previousName}`;
+    const renamedKey = `${state.currentNote.folder}/${desiredName}`;
+    state.noteOrder = state.noteOrder.map((key) => key === previousKey ? renamedKey : key);
   }
 
   state.isDirty = false;
   setSaveStatus('Guardado ahora');
   await loadNotes();
+  await saveNoteOrder();
 }
 
 function scheduleSave() {
