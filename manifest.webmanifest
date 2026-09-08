@@ -10,7 +10,7 @@
   "theme_color": "#f6f7f9",
   "icons": [
     {
-      "src": "logo-n-no-borde.png",
+      "src": "logo-n.png",
       "sizes": "252x252",
       "type": "image/png",
       "purpose": "any maskable"
