@@ -275,13 +275,16 @@ async function collectNotes(directoryHandle, folder, loadedNotes) {
 
 async function createNoteEntry(directoryHandle, folder, name, handle) {
   let modified = 0;
+  let title = noteTitleFromFileName(name);
   try {
     const file = await handle.getFile();
     modified = file.lastModified;
+    const content = JSON.parse(await file.text());
+    title = content.title?.trim() || 'Nota sin título';
   } catch (error) {
-    console.warn(`No se pudo leer la fecha de ${name}`, error);
+    console.warn(`No se pudo leer la nota ${name}`, error);
   }
-  return { name, folder, directoryHandle, title: noteTitleFromFileName(name), modified };
+  return { name, folder, directoryHandle, title, modified };
 }
 
 function renderNotes() {
