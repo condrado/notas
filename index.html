@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#f6f7f9">
+  <title>Notas locales</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='white'/%3E%3Cpath d='M17 49V15h8l22 22V15h8v34h-8L25 27v22z' fill='black'/%3E%3C/svg%3E" type="image/svg+xml">
+  <link rel="preconnect" href="https://cdn.jsdelivr.net">
+  <link href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css" rel="stylesheet" integrity="sha384-ecIckRi4QlKYya/FQUbBUjS4qp65jF/J87Guw5uzTbO1C1Jfa/6kYmd6dXUF6D7i" crossorigin="anonymous">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="app-shell">
+    <aside class="sidebar" aria-label="Navegación de notas">
+      <div class="sidebar-header">
+        <div>
+          <p class="eyebrow">Mi espacio</p>
+          <h1>Notas</h1>
+        </div>
+        <div class="sidebar-header-actions">
+          <button id="new-note-button" class="icon-button" type="button" title="Nueva nota" aria-label="Nueva nota" disabled><i data-lucide="plus" aria-hidden="true"></i></button>
+          <button id="new-folder-button" class="icon-button folder-button" type="button" title="Nueva carpeta" aria-label="Nueva carpeta" disabled><i data-lucide="folder-plus" aria-hidden="true"></i></button>
+        </div>
+      </div>
+
+      <div class="sidebar-actions">
+        <label class="search-box" for="search-input" aria-label="Buscar notas">
+          <i data-lucide="search" aria-hidden="true"></i>
+          <input id="search-input" type="search" placeholder="Buscar notas" autocomplete="off" disabled>
+        </label>
+      </div>
+
+      <div class="notes-heading">
+        <span>Notas</span>
+        <span id="notes-count" class="count-badge">0</span>
+      </div>
+      <nav id="notes-list" class="notes-list" aria-label="Lista de notas"></nav>
+      <div id="empty-notes" class="empty-notes">
+        <span class="empty-icon" aria-hidden="true"><i data-lucide="sparkles"></i></span>
+        <p>Abre una carpeta para ver tus notas.</p>
+      </div>
+
+      <div class="sidebar-bottom">
+        <button id="open-folder-button" class="primary-button" type="button">
+          <i data-lucide="folder-open" aria-hidden="true"></i>
+          Reabrir notas-data/
+        </button>
+        <div class="sidebar-footer">
+          <span id="folder-status" class="status-dot"></span>
+          <span id="folder-name">Ninguna carpeta abierta</span>
+        </div>
+      </div>
+    </aside>
+
+    <section class="editor-panel" aria-label="Editor de nota">
+      <header class="editor-header">
+        <div class="breadcrumb">
+          <span id="current-note-label">Sin nota seleccionada</span>
+        </div>
+        <div class="editor-actions">
+          <output id="save-status" class="save-status">Listo</output>
+          <button id="save-button" class="secondary-button" type="button" disabled>
+            <i data-lucide="save" aria-hidden="true"></i>
+            Guardar
+          </button>
+          <button id="delete-button" class="danger-button" type="button" disabled>
+            <i data-lucide="trash-2" aria-hidden="true"></i>
+            Eliminar
+          </button>
+        </div>
+      </header>
+
+      <div id="welcome-view" class="welcome-view">
+        <div class="welcome-mark" aria-hidden="true"><i data-lucide="pencil"></i></div>
+        <h2>Tu espacio para pensar</h2>
+        <p>Abre una carpeta local para empezar a crear notas que solo viven en tu Mac.</p>
+        <button id="welcome-open-button" class="primary-button" type="button">
+          <i data-lucide="plus" aria-hidden="true"></i>
+          Nueva nota
+        </button>
+      </div>
+
+      <article id="note-view" class="note-view hidden">
+        <input id="note-title" class="note-title" type="text" placeholder="Título" aria-label="Título de la nota" maxlength="120">
+        <div class="note-controls">
+          <label for="note-folder">Grupo</label>
+          <select id="note-folder" aria-label="Grupo de la nota"></select>
+        </div>
+        <div id="editor"></div>
+        <p class="editor-hint">Los cambios se guardan en la carpeta local. Las imágenes pegadas quedan dentro del archivo JSON.</p>
+      </article>
+    </section>
+  </main>
+
+  <div id="toast" class="toast" role="alert" aria-live="assertive"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js" integrity="sha384-utBUCeG4SYaCm4m7GQZYr8Hy8Fpy3V4KGjBZaf4WTKOcwhCYpt/0PfeEe3HNlwx8" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/quill-resize-module@2.1.3/dist/resize.js" integrity="sha384-RXKKGqKv9bK+yNKrJzE1Z95yockBX0VBGKW0CWajXUjuc0hr4wAVr3xihMF7rKRk" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.468.0/dist/umd/lucide.js" integrity="sha384-LtmWBcrD5iuFIR4sFphS8IiiaftkypL5dJzLKywbyd9ATLB7ZbPz3JYnI9nvXHkV" crossorigin="anonymous"></script>
+  <script src="app.js"></script>
+</body>
+</html>

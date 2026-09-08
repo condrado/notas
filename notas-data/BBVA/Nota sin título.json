@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "title": "Nota sin título",
+  "content": {
+    "ops": [
+      {
+        "insert": "hola\n"
+      }
+    ]
+  },
+  "createdAt": 1788887751120,
+  "updatedAt": 1788889517062
+}
