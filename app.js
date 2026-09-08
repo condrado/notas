@@ -13,7 +13,7 @@ const state = {
 
 const NOTES_DIRECTORY_NAME = 'notas-data';
 const GROUP_CONFIG_FILE = '.notas-config.json';
-const DIRECTORY_DATABASE_NAME = 'notas-locales';
+const DIRECTORY_DATABASE_NAME = 'notas';
 const DIRECTORY_STORE_NAME = 'handles';
 const GROUP_COLORS = [
   '#6b7280', '#ef4444', '#f97316', '#f59e0b', '#eab308',
