@@ -1015,8 +1015,8 @@ async function writeCurrentNote() {
   state.isDirty = false;
   saveSelectedNote();
   setSaveStatus('Guardado ahora');
+  await saveGroupColors();
   await loadNotes();
-  await saveNoteOrder();
 }
 
 function scheduleSave() {
