@@ -33,6 +33,23 @@
           <i data-lucide="search" aria-hidden="true"></i>
           <input id="search-input" type="search" placeholder="Buscar notas" autocomplete="off" disabled>
         </label>
+        <div class="tools-menu-container">
+          <button id="tools-menu-button" class="icon-button folder-button" type="button" title="Herramientas" aria-label="Herramientas" aria-expanded="false" aria-controls="tools-menu"><i data-lucide="wrench" aria-hidden="true"></i></button>
+          <div id="tools-menu" class="folder-menu" hidden>
+            <div class="tools-menu-label">Zoom del texto</div>
+            <div class="zoom-controls">
+              <button id="font-zoom-out" class="zoom-control" type="button" title="Reducir tamaño del texto" aria-label="Reducir tamaño del texto"><i data-lucide="minus" aria-hidden="true"></i></button>
+              <button id="font-zoom-reset" class="zoom-control zoom-value" type="button" title="Restablecer tamaño del texto" aria-label="Restablecer tamaño del texto">100%</button>
+              <button id="font-zoom-in" class="zoom-control" type="button" title="Aumentar tamaño del texto" aria-label="Aumentar tamaño del texto"><i data-lucide="plus" aria-hidden="true"></i></button>
+            </div>
+            <div class="tools-menu-label">Tema</div>
+            <label class="theme-switch">
+              <span>Modo oscuro</span>
+              <input id="theme-switch" type="checkbox" aria-label="Activar modo oscuro">
+              <span class="theme-switch-track" aria-hidden="true"><span class="theme-switch-thumb"></span></span>
+            </label>
+          </div>
+        </div>
       </div>
 
       <div class="notes-heading">
@@ -55,7 +72,6 @@
           <button id="sidebar-layout-toggle" class="icon-button layout-button" type="button" title="Cambiar diseño del sidebar" aria-label="Cambiar diseño del sidebar"><i data-lucide="panel-left" aria-hidden="true"></i></button>
           <span id="folder-status" class="status-dot"></span>
           <span id="folder-name">Ninguna carpeta abierta</span>
-          <button id="theme-toggle" class="icon-button theme-button" type="button" title="Activar modo oscuro" aria-label="Activar modo oscuro"><i data-lucide="moon" aria-hidden="true"></i></button>
         </div>
       </div>
     </aside>

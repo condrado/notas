@@ -20,6 +20,7 @@ const DIRECTORY_DATABASE_NAME = 'notas';
 const DIRECTORY_STORE_NAME = 'handles';
 const SELECTED_NOTE_STORAGE_KEY = 'notas-selected-note';
 const SIDEBAR_LAYOUT_STORAGE_KEY = 'notas-sidebar-layout';
+const FONT_SCALE_STORAGE_KEY = 'notas-font-scale';
 const GROUP_COLORS = [
   '#6b7280', '#ef4444', '#f97316', '#f59e0b', '#eab308',
   '#84cc16', '#22c55e', '#10b981', '#14b8a6', '#06b6d4',
@@ -34,7 +35,7 @@ const elements = {
   welcomeOpen: document.querySelector('#welcome-open-button'),
   newNote: document.querySelector('#new-note-button'),
   newFolder: document.querySelector('#new-folder-button'),
-  themeToggle: document.querySelector('#theme-toggle'),
+  themeSwitch: document.querySelector('#theme-switch'),
   save: document.querySelector('#save-button'),
   delete: document.querySelector('#delete-button'),
   search: document.querySelector('#search-input'),
@@ -52,6 +53,11 @@ const elements = {
   toast: document.querySelector('#toast'),
   folderList: document.querySelector('#folder-list'),
   sidebarLayoutToggle: document.querySelector('#sidebar-layout-toggle'),
+  toolsMenuButton: document.querySelector('#tools-menu-button'),
+  toolsMenu: document.querySelector('#tools-menu'),
+  fontZoomOut: document.querySelector('#font-zoom-out'),
+  fontZoomReset: document.querySelector('#font-zoom-reset'),
+  fontZoomIn: document.querySelector('#font-zoom-in'),
 };
 
 let compactTooltip = null;
@@ -112,9 +118,8 @@ function applyTheme(theme) {
   const isDark = theme === 'dark';
   document.documentElement.dataset.theme = isDark ? 'dark' : 'light';
   document.querySelector('.brand-icon').src = isDark ? 'logo-n-no-borde-dark.png' : 'logo-n-no-borde.png';
-  elements.themeToggle.title = isDark ? 'Activar modo claro' : 'Activar modo oscuro';
-  elements.themeToggle.setAttribute('aria-label', elements.themeToggle.title);
-  elements.themeToggle.innerHTML = `<i data-lucide="${isDark ? 'sun' : 'moon'}" aria-hidden="true"></i>`;
+  elements.themeSwitch.checked = isDark;
+  elements.themeSwitch.setAttribute('aria-label', isDark ? 'Activar modo claro' : 'Activar modo oscuro');
   document.querySelector('meta[name="theme-color"]').content = isDark ? '#202124' : '#f6f7f9';
   lucide.createIcons();
 }
@@ -123,6 +128,20 @@ function initializeTheme() {
   const savedTheme = window.localStorage.getItem('notas-theme');
   const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
   applyTheme(savedTheme || systemTheme);
+}
+
+function applyFontScale(scale) {
+  const selectedScale = Number.isFinite(scale) ? Math.min(1.25, Math.max(0.875, scale)) : 1;
+  document.documentElement.style.fontSize = `${selectedScale * 100}%`;
+  elements.fontZoomReset.textContent = `${Math.round(selectedScale * 100)}%`;
+  elements.fontZoomReset.setAttribute('aria-label', `Restablecer tamaño del texto. Actual: ${Math.round(selectedScale * 100)}%`);
+  elements.fontZoomReset.title = elements.fontZoomReset.getAttribute('aria-label');
+  window.localStorage.setItem(FONT_SCALE_STORAGE_KEY, String(selectedScale));
+}
+
+function initializeFontScale() {
+  const savedScale = Number.parseFloat(window.localStorage.getItem(FONT_SCALE_STORAGE_KEY));
+  applyFontScale(Number.isFinite(savedScale) ? savedScale : 1);
 }
 
 function applySidebarLayout(layout) {
@@ -1065,7 +1084,7 @@ elements.openFolder.addEventListener('click', openNotesFolder);
 elements.welcomeOpen.addEventListener('click', createNoteFromWelcome);
 elements.newNote.addEventListener('click', () => createNewNote());
 elements.newFolder.addEventListener('click', createNewFolder);
-elements.themeToggle.addEventListener('click', () => {
+elements.themeSwitch.addEventListener('change', () => {
   const nextTheme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
   window.localStorage.setItem('notas-theme', nextTheme);
   applyTheme(nextTheme);
@@ -1077,6 +1096,26 @@ elements.sidebarLayoutToggle.addEventListener('click', () => {
   window.localStorage.setItem(SIDEBAR_LAYOUT_STORAGE_KEY, nextLayout);
   applySidebarLayout(nextLayout);
   renderNotes();
+});
+elements.fontZoomOut.addEventListener('click', () => {
+  const currentScale = Number.parseFloat(window.getComputedStyle(document.documentElement).fontSize) / 16;
+  applyFontScale(currentScale - 0.125);
+});
+elements.fontZoomReset.addEventListener('click', () => applyFontScale(1));
+elements.fontZoomIn.addEventListener('click', () => {
+  const currentScale = Number.parseFloat(window.getComputedStyle(document.documentElement).fontSize) / 16;
+  applyFontScale(currentScale + 0.125);
+});
+elements.toolsMenuButton.addEventListener('click', (event) => {
+  event.stopPropagation();
+  const isOpen = !elements.toolsMenu.hidden;
+  elements.toolsMenu.hidden = isOpen;
+  elements.toolsMenuButton.setAttribute('aria-expanded', String(!isOpen));
+});
+elements.toolsMenu.addEventListener('click', (event) => event.stopPropagation());
+document.addEventListener('click', () => {
+  elements.toolsMenu.hidden = true;
+  elements.toolsMenuButton.setAttribute('aria-expanded', 'false');
 });
 elements.sidebar.addEventListener('mouseover', (event) => {
   const target = event.target.closest('[data-tooltip]');
@@ -1101,6 +1140,7 @@ quill.on('text-change', (change, oldChange, source) => {
 quill.root.addEventListener('paste', handleImagePaste);
 lucide.createIcons();
 initializeTheme();
+initializeFontScale();
 initializeSidebarLayout();
 restoreNotesFolder();
 
