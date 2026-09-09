@@ -44,7 +44,6 @@ const elements = {
   title: document.querySelector('#note-title'),
   folderSelect: document.querySelector('#note-folder'),
   toast: document.querySelector('#toast'),
-  appVersion: document.querySelector('#app-version'),
 };
 
 const Font = Quill.import('formats/font');
@@ -91,17 +90,6 @@ function initializeTheme() {
   const savedTheme = window.localStorage.getItem('notas-theme');
   const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
   applyTheme(savedTheme || systemTheme);
-}
-
-async function loadAppVersion() {
-  try {
-    const response = await fetch('./package.json');
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const packageData = await response.json();
-    elements.appVersion.textContent = `v${packageData.version}`;
-  } catch (error) {
-    console.warn('No se pudo cargar la versión de la aplicación.', error);
-  }
 }
 
 if ('serviceWorker' in navigator && ['http:', 'https:'].includes(window.location.protocol)) {
@@ -937,7 +925,6 @@ quill.on('text-change', (change, oldChange, source) => {
 quill.root.addEventListener('paste', handleImagePaste);
 lucide.createIcons();
 initializeTheme();
-loadAppVersion();
 restoreNotesFolder();
 
 window.addEventListener('beforeunload', (event) => {

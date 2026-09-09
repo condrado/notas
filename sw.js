@@ -1,10 +1,9 @@
-const CACHE_NAME = 'notas-v7';
+const CACHE_NAME = 'notas-v5';
 const APP_SHELL = [
   './',
   './index.html',
   './style.css',
   './app.js',
-  './package.json',
   './manifest.webmanifest',
   './logo-n.png',
   './logo-n-no-borde.png',
