@@ -8,6 +8,7 @@ const state = {
   draggedNote: null,
   draggedFolder: null,
   collapsedFolders: new Set(),
+  selectedFolder: null,
   currentNote: null,
   saveTimer: null,
   isDirty: false,
@@ -18,6 +19,7 @@ const GROUP_CONFIG_FILE = '.notas-config.json';
 const DIRECTORY_DATABASE_NAME = 'notas';
 const DIRECTORY_STORE_NAME = 'handles';
 const SELECTED_NOTE_STORAGE_KEY = 'notas-selected-note';
+const SIDEBAR_LAYOUT_STORAGE_KEY = 'notas-sidebar-layout';
 const GROUP_COLORS = [
   '#6b7280', '#ef4444', '#f97316', '#f59e0b', '#eab308',
   '#84cc16', '#22c55e', '#10b981', '#14b8a6', '#06b6d4',
@@ -26,6 +28,8 @@ const GROUP_COLORS = [
 ];
 
 const elements = {
+  appShell: document.querySelector('#app-shell'),
+  sidebar: document.querySelector('#sidebar'),
   openFolder: document.querySelector('#open-folder-button'),
   welcomeOpen: document.querySelector('#welcome-open-button'),
   newNote: document.querySelector('#new-note-button'),
@@ -46,6 +50,8 @@ const elements = {
   title: document.querySelector('#note-title'),
   folderSelect: document.querySelector('#note-folder'),
   toast: document.querySelector('#toast'),
+  folderList: document.querySelector('#folder-list'),
+  sidebarLayoutToggle: document.querySelector('#sidebar-layout-toggle'),
 };
 
 const Font = Quill.import('formats/font');
@@ -92,6 +98,29 @@ function initializeTheme() {
   const savedTheme = window.localStorage.getItem('notas-theme');
   const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
   applyTheme(savedTheme || systemTheme);
+}
+
+function applySidebarLayout(layout) {
+  const layouts = ['full', 'split', 'compact'];
+  const selectedLayout = layouts.includes(layout) ? layout : 'full';
+  elements.sidebar.dataset.layout = selectedLayout;
+  document.documentElement.dataset.sidebarLayout = selectedLayout;
+  const nextLayout = layouts[(layouts.indexOf(selectedLayout) + 1) % layouts.length];
+  const labels = {
+    full: 'Diseño completo',
+    split: 'Grupos y notas separados',
+    compact: 'Diseño compacto',
+  };
+  const icons = { full: 'panel-left', split: 'columns-2', compact: 'panel-left-close' };
+  elements.sidebarLayoutToggle.title = `Cambiar diseño. Actual: ${labels[selectedLayout]}`;
+  elements.sidebarLayoutToggle.setAttribute('aria-label', elements.sidebarLayoutToggle.title);
+  elements.sidebarLayoutToggle.innerHTML = `<i data-lucide="${icons[nextLayout]}" aria-hidden="true"></i>`;
+  lucide.createIcons();
+}
+
+function initializeSidebarLayout() {
+  const savedLayout = window.localStorage.getItem(SIDEBAR_LAYOUT_STORAGE_KEY) || 'full';
+  applySidebarLayout(savedLayout);
 }
 
 if ('serviceWorker' in navigator && ['http:', 'https:'].includes(window.location.protocol)) {
@@ -369,8 +398,22 @@ async function createNoteEntry(directoryHandle, folder, name, handle) {
 
 function renderNotes() {
   const query = elements.search.value.trim().toLocaleLowerCase();
-  const filteredNotes = state.notes.filter((note) => note.title.toLocaleLowerCase().includes(query));
+  const searchedNotes = state.notes.filter((note) => note.title.toLocaleLowerCase().includes(query));
+  const isSplitLayout = elements.sidebar.dataset.layout === 'split';
+  const availableFolders = new Set(state.folders.map((folder) => folder.name));
+  availableFolders.add('');
+  if (isSplitLayout && (!availableFolders.has(state.selectedFolder) || state.selectedFolder === null)) {
+    state.selectedFolder = state.currentNote?.folder ?? searchedNotes[0]?.folder ?? '';
+  }
+  const filteredNotes = isSplitLayout && state.selectedFolder !== null
+    ? searchedNotes.filter((note) => note.folder === state.selectedFolder)
+    : searchedNotes;
+  const folderSequence = [...new Set(filteredNotes.map((note) => note.folder))];
+  const notesToRender = isSplitLayout
+    ? filteredNotes
+    : folderSequence.flatMap((folderName) => filteredNotes.filter((note) => note.folder === folderName));
   elements.notesList.replaceChildren();
+  elements.folderList.replaceChildren();
   elements.notesCount.textContent = state.notes.length;
   elements.emptyNotes.classList.toggle('hidden', filteredNotes.length > 0);
 
@@ -383,25 +426,28 @@ function renderNotes() {
   }
 
   const hasGeneralNotes = filteredNotes.some((note) => note.folder === '');
-  if (hasGeneralNotes) elements.notesList.append(createFolderLabel('General'));
+  if (hasGeneralNotes && !isSplitLayout) elements.notesList.append(createFolderLabel('General'));
   let currentFolder = '';
   let hasRenderedNotesGroup = false;
-  filteredNotes.forEach((note) => {
+  notesToRender.forEach((note) => {
     if (note.folder !== currentFolder) {
       if (hasRenderedNotesGroup) elements.notesList.append(createNoteDropZone(currentFolder));
       currentFolder = note.folder;
-      if (currentFolder) {
+      if (currentFolder && !isSplitLayout) {
         elements.notesList.append(createFolderLabel(currentFolder));
       }
       hasRenderedNotesGroup = true;
     }
-    if (state.collapsedFolders.has(note.folder)) return;
+    if (!isSplitLayout && state.collapsedFolders.has(note.folder)) return;
     const button = document.createElement('button');
     button.type = 'button';
     button.draggable = true;
     button.className = `note-item${state.currentNote?.name === note.name && state.currentNote?.folder === note.folder ? ' active' : ''}`;
     button.style.setProperty('--group-color', state.groupColors[note.folder] || '#73777d');
-    button.innerHTML = `<span class="note-item-title"></span><span class="note-item-date"></span>`;
+    button.innerHTML = '<span class="note-item-title"></span><span class="note-item-date"></span>';
+    const noteInitial = (note.title.trim().split(/\s+/)[0] || note.name || 'N').charAt(0).toLocaleUpperCase();
+    button.dataset.compactLabel = noteInitial;
+    button.setAttribute('aria-label', note.title || note.name);
     button.querySelector('.note-item-title').textContent = note.title;
     button.querySelector('.note-item-date').textContent = formatDate(note.modified);
     button.addEventListener('click', () => openNote(note));
@@ -435,8 +481,16 @@ function renderNotes() {
 
   [...state.folders].sort((first, second) => compareFolderNames(first.name, second.name))
     .filter((folder) => !filteredNotes.some((note) => note.folder === folder.name))
-    .forEach((folder) => elements.notesList.append(createFolderLabel(folder.name)));
+    .forEach((folder) => {
+      if (!isSplitLayout) elements.notesList.append(createFolderLabel(folder.name));
+    });
 
+  if (isSplitLayout) {
+    const groupNames = [...new Set(searchedNotes.map((note) => note.folder))]
+      .sort(compareFolderNames)
+      .map((folderName) => folderName || 'General');
+    elements.folderList.replaceChildren(...groupNames.map((folderName) => createFolderLabel(folderName || 'General')));
+  }
   lucide.createIcons();
 }
 
@@ -464,9 +518,16 @@ function createNoteDropZone(folderName) {
 function createFolderLabel(folderName) {
   const groupLabel = document.createElement('div');
   const folderKey = folderName === 'General' ? '' : folderName;
-  const isCollapsed = state.collapsedFolders.has(folderKey);
+  const isSplitLayout = elements.sidebar.dataset.layout === 'split';
+  const isCollapsed = !isSplitLayout && state.collapsedFolders.has(folderKey);
   const groupColor = state.groupColors[folderKey] || '#73777d';
-  groupLabel.className = 'note-group-label';
+    groupLabel.className = 'note-group-label';
+    const folderInitial = (folderName.trim().split(/\s+/)[0] || 'G').charAt(0).toLocaleUpperCase();
+    groupLabel.dataset.compactLabel = folderInitial;
+    groupLabel.title = folderName;
+  if (elements.sidebar.dataset.layout === 'split' && state.selectedFolder === folderKey) {
+    groupLabel.classList.add('selected');
+  }
   groupLabel.draggable = folderKey !== '';
   groupLabel.style.setProperty('--group-color', groupColor);
   groupLabel.tabIndex = 0;
@@ -510,16 +571,24 @@ function createFolderLabel(folderName) {
   });
   groupLabel.setAttribute('aria-expanded', String(!isCollapsed));
   groupLabel.addEventListener('click', () => {
+    if (elements.sidebar.dataset.layout === 'split') {
+      state.selectedFolder = folderKey;
+      renderNotes();
+      return;
+    }
     if (state.collapsedFolders.has(folderKey)) state.collapsedFolders.delete(folderKey);
     else state.collapsedFolders.add(folderKey);
     renderNotes();
   });
   const folderNameElement = document.createElement('span');
   folderNameElement.className = 'folder-label-text';
-  const collapseIcon = document.createElement('i');
-  collapseIcon.dataset.lucide = isCollapsed ? 'chevron-right' : 'chevron-down';
-  collapseIcon.setAttribute('aria-hidden', 'true');
-  folderNameElement.append(collapseIcon, document.createTextNode(folderName));
+  if (!isSplitLayout) {
+    const collapseIcon = document.createElement('i');
+    collapseIcon.dataset.lucide = isCollapsed ? 'chevron-right' : 'chevron-down';
+    collapseIcon.setAttribute('aria-hidden', 'true');
+    folderNameElement.append(collapseIcon);
+  }
+  folderNameElement.append(document.createTextNode(folderName));
   const groupActions = document.createElement('span');
   groupActions.className = 'group-actions';
   const menuButton = document.createElement('button');
@@ -970,6 +1039,14 @@ elements.themeToggle.addEventListener('click', () => {
   window.localStorage.setItem('notas-theme', nextTheme);
   applyTheme(nextTheme);
 });
+elements.sidebarLayoutToggle.addEventListener('click', () => {
+  const layouts = ['full', 'split', 'compact'];
+  const currentLayout = elements.sidebar.dataset.layout || 'full';
+  const nextLayout = layouts[(layouts.indexOf(currentLayout) + 1) % layouts.length];
+  window.localStorage.setItem(SIDEBAR_LAYOUT_STORAGE_KEY, nextLayout);
+  applySidebarLayout(nextLayout);
+  renderNotes();
+});
 elements.folderSelect.addEventListener('change', moveCurrentNote);
 elements.delete.addEventListener('click', deleteCurrentNote);
 elements.save.addEventListener('click', () => {
@@ -986,6 +1063,7 @@ quill.on('text-change', (change, oldChange, source) => {
 quill.root.addEventListener('paste', handleImagePaste);
 lucide.createIcons();
 initializeTheme();
+initializeSidebarLayout();
 restoreNotesFolder();
 
 window.addEventListener('beforeunload', (event) => {
