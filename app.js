@@ -730,6 +730,7 @@ async function createNewNote(directoryHandle = state.directoryHandle, folder = '
   try {
     const fileHandle = await directoryHandle.getFileHandle(fileName, { create: true });
     state.currentNote = { name: fileName, folder, directoryHandle, fileHandle, note: initialNote };
+    if (elements.sidebar.dataset.layout === 'split') state.selectedFolder = folder;
     await writeFile(fileHandle, initialNote);
     elements.title.value = baseTitle;
     updateFolderSelect(folder);
@@ -737,9 +738,11 @@ async function createNewNote(directoryHandle = state.directoryHandle, folder = '
     elements.welcomeView.classList.add('hidden');
     elements.noteView.classList.remove('hidden');
     elements.currentNoteLabel.textContent = folder ? `${folder}/${fileName}` : fileName;
+    elements.save.disabled = false;
+    elements.delete.disabled = false;
     state.isDirty = false;
     saveSelectedNote();
-    renderNotes();
+    await loadNotes();
     elements.title.focus();
     elements.title.select();
   } catch (error) {
