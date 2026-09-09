@@ -54,6 +54,31 @@ const elements = {
   sidebarLayoutToggle: document.querySelector('#sidebar-layout-toggle'),
 };
 
+let compactTooltip = null;
+
+function getCompactTooltip() {
+  if (compactTooltip) return compactTooltip;
+  compactTooltip = document.createElement('div');
+  compactTooltip.className = 'compact-tooltip';
+  compactTooltip.hidden = true;
+  document.body.append(compactTooltip);
+  return compactTooltip;
+}
+
+function showCompactTooltip(target) {
+  if (document.documentElement.dataset.sidebarLayout !== 'compact' || !target?.dataset.tooltip) return;
+  const tooltip = getCompactTooltip();
+  const bounds = target.getBoundingClientRect();
+  tooltip.textContent = target.dataset.tooltip;
+  tooltip.hidden = false;
+  tooltip.style.left = `${bounds.right + 9}px`;
+  tooltip.style.top = `${bounds.top + bounds.height / 2}px`;
+}
+
+function hideCompactTooltip() {
+  if (compactTooltip) compactTooltip.hidden = true;
+}
+
 const Font = Quill.import('formats/font');
 Font.whitelist = ['sans-serif', 'serif', 'monospace', 'code'];
 Quill.register(Font, true);
@@ -447,6 +472,8 @@ function renderNotes() {
     button.innerHTML = '<span class="note-item-title"></span><span class="note-item-date"></span>';
     const noteInitial = (note.title.trim().split(/\s+/)[0] || note.name || 'N').charAt(0).toLocaleUpperCase();
     button.dataset.compactLabel = noteInitial;
+    button.dataset.tooltip = note.title || note.name;
+    button.title = note.title || note.name;
     button.setAttribute('aria-label', note.title || note.name);
     button.querySelector('.note-item-title').textContent = note.title;
     button.querySelector('.note-item-date').textContent = formatDate(note.modified);
@@ -524,6 +551,7 @@ function createFolderLabel(folderName) {
     groupLabel.className = 'note-group-label';
     const folderInitial = (folderName.trim().split(/\s+/)[0] || 'G').charAt(0).toLocaleUpperCase();
     groupLabel.dataset.compactLabel = folderInitial;
+    groupLabel.dataset.tooltip = folderName;
     groupLabel.title = folderName;
   if (elements.sidebar.dataset.layout === 'split' && state.selectedFolder === folderKey) {
     groupLabel.classList.add('selected');
@@ -1049,6 +1077,13 @@ elements.sidebarLayoutToggle.addEventListener('click', () => {
   window.localStorage.setItem(SIDEBAR_LAYOUT_STORAGE_KEY, nextLayout);
   applySidebarLayout(nextLayout);
   renderNotes();
+});
+elements.sidebar.addEventListener('mouseover', (event) => {
+  const target = event.target.closest('[data-tooltip]');
+  if (target) showCompactTooltip(target);
+});
+elements.sidebar.addEventListener('mouseout', (event) => {
+  if (event.target.closest('[data-tooltip]')) hideCompactTooltip();
 });
 elements.folderSelect.addEventListener('change', moveCurrentNote);
 elements.delete.addEventListener('click', deleteCurrentNote);

@@ -154,6 +154,8 @@ h1 { margin: 0; font-size: 28px; letter-spacing: -.04em; }
 .toast { position: fixed; right: 24px; bottom: 24px; max-width: 340px; padding: 12px 16px; border-radius: 8px; color: #fff; background: #25282c; box-shadow: 0 7px 24px #0000002b; font-size: 13px; opacity: 0; pointer-events: none; transform: translateY(8px); transition: opacity .2s ease, transform .2s ease; }
 .toast.visible { opacity: 1; transform: translateY(0); }
 .toast.error { background: var(--danger); }
+.compact-tooltip { position: fixed; z-index: 100; max-width: 320px; padding: 7px 9px; border: 1px solid var(--line); border-radius: 6px; color: var(--ink); background: var(--surface); box-shadow: 0 6px 18px #0000002b; font-size: 12px; line-height: 1.3; pointer-events: none; transform: translateY(-50%); }
+.compact-tooltip[hidden] { display: none; }
 
 :root[data-sidebar-layout="split"] .sidebar { display: grid; grid-template-columns: minmax(150px, .7fr) minmax(260px, 1.3fr); grid-template-rows: auto auto auto minmax(0, 1fr) auto; gap: 0; padding: 30px 18px 18px; }
 :root[data-sidebar-layout="split"] .sidebar-header,
