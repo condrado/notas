@@ -2,7 +2,7 @@
 
 Aplicación web estática para escribir y organizar notas localmente.
 
-Versión actual: **1.0.11**
+Versión actual: **1.0.12**
 
 ## Versionado automático
 

@@ -25,11 +25,16 @@ jobs:
 
       - name: Incrementar version
         run: |
-          if git diff-tree --no-commit-id --name-only -r "$GITHUB_SHA" | grep -qx 'package.json'; then
+          commit_message=$(git log -1 --format=%B "$GITHUB_SHA")
+          if printf '%s\n' "$commit_message" | grep -q '^chore: incrementar version'; then
+            echo "El commit ya fue generado por la automatizacion"
+            exit 0
+          fi
+          if git diff-tree --no-commit-id --name-only -r "$GITHUB_SHA" | grep -Fqx 'package.json'; then
             echo "La version ya forma parte del commit enviado"
             exit 0
           fi
-          node scripts/bump-version.mjs "${{ github.event.head_commit.message }}"
+          node scripts/bump-version.mjs "$commit_message"
 
       - name: Publicar nueva version
         run: |
