@@ -129,6 +129,8 @@ h1 { margin: 0; font-size: 28px; letter-spacing: -.04em; }
 .ql-editor .ql-font-code { font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace; }
 .ql-editor { height: auto; overflow: visible; padding: 23px 0; }
 .ql-editor ol { padding-left: 0; }
+.ql-editor li.ql-indent-1:not(.ql-direction-rtl) { padding-left: 3em; }
+.ql-editor li.ql-indent-1[data-list="bullet"] > .ql-ui::before { content: "\25CB"; font-size: 8px; display: inline; position: relative; top: -3px; right: 1px; }
 .ql-editor.ql-blank::before { left: 0; color: #b4b8bd; font-style: normal; }
 .ql-snow .ql-stroke { stroke: #6b7076; }
 .ql-snow .ql-fill { fill: #6b7076; }
