@@ -302,7 +302,8 @@ function renderNotes() {
     elements.emptyNotes.querySelector('p').textContent = 'Abre una carpeta para ver tus notas.';
   }
 
-  elements.notesList.append(createFolderLabel('General'));
+  const hasGeneralNotes = filteredNotes.some((note) => note.folder === '');
+  if (hasGeneralNotes) elements.notesList.append(createFolderLabel('General'));
   let currentFolder = '';
   let hasRenderedNotesGroup = false;
   filteredNotes.forEach((note) => {
