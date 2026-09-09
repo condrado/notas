@@ -1,6 +1,6 @@
 {
   "name": "notas",
-  "version": "1.0.10",
+  "version": "1.0.11",
   "private": true,
   "description": "Aplicacion web estatica para escribir y organizar notas localmente.",
   "scripts": {
