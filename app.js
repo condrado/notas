@@ -606,7 +606,7 @@ async function createNewNote(directoryHandle = state.directoryHandle, folder = '
   try {
     const fileHandle = await directoryHandle.getFileHandle(fileName, { create: true });
     state.currentNote = { name: fileName, folder, directoryHandle, fileHandle, note: initialNote };
-    await writeCurrentNote();
+    await writeFile(fileHandle, initialNote);
     elements.title.value = baseTitle;
     updateFolderSelect(folder);
     quill.setContents(initialNote.content);
@@ -902,7 +902,7 @@ function handleTitleChange() {
 
 elements.openFolder.addEventListener('click', openNotesFolder);
 elements.welcomeOpen.addEventListener('click', createNoteFromWelcome);
-elements.newNote.addEventListener('click', createNewNote);
+elements.newNote.addEventListener('click', () => createNewNote());
 elements.newFolder.addEventListener('click', createNewFolder);
 elements.themeToggle.addEventListener('click', () => {
   const nextTheme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
