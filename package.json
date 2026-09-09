@@ -1,0 +1,9 @@
+{
+  "name": "notas",
+  "version": "1.0.10",
+  "private": true,
+  "description": "Aplicacion web estatica para escribir y organizar notas localmente.",
+  "scripts": {
+    "version:bump": "node scripts/bump-version.mjs"
+  }
+}

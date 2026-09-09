@@ -15,6 +15,7 @@ const NOTES_DIRECTORY_NAME = 'notas-data';
 const GROUP_CONFIG_FILE = '.notas-config.json';
 const DIRECTORY_DATABASE_NAME = 'notas';
 const DIRECTORY_STORE_NAME = 'handles';
+const SELECTED_NOTE_STORAGE_KEY = 'notas-selected-note';
 const GROUP_COLORS = [
   '#6b7280', '#ef4444', '#f97316', '#f59e0b', '#eab308',
   '#84cc16', '#22c55e', '#10b981', '#14b8a6', '#06b6d4',
@@ -255,9 +256,40 @@ async function loadNotes() {
     state.folders = folders;
     if (state.currentNote) updateFolderSelect(state.currentNote.folder);
     renderNotes();
+    await restoreSelectedNote();
   } catch (error) {
     console.error('No se pudieron leer las notas de la carpeta.', error);
     showToast('No se pudieron leer las notas de la carpeta.', true);
+  }
+}
+
+function saveSelectedNote() {
+  if (!state.currentNote) return;
+  window.localStorage.setItem(SELECTED_NOTE_STORAGE_KEY, JSON.stringify({
+    name: state.currentNote.name,
+    folder: state.currentNote.folder,
+  }));
+}
+
+function clearSelectedNote() {
+  window.localStorage.removeItem(SELECTED_NOTE_STORAGE_KEY);
+}
+
+async function restoreSelectedNote() {
+  if (state.currentNote) return;
+  let selectedNote;
+  try {
+    selectedNote = JSON.parse(window.localStorage.getItem(SELECTED_NOTE_STORAGE_KEY) || 'null');
+  } catch (error) {
+    clearSelectedNote();
+    return;
+  }
+  if (!selectedNote?.name) return;
+  const noteEntry = state.notes.find((note) => note.name === selectedNote.name && note.folder === (selectedNote.folder || ''));
+  if (noteEntry) {
+    await openNote(noteEntry);
+  } else {
+    clearSelectedNote();
   }
 }
 
@@ -549,6 +581,7 @@ async function openNote(noteEntry) {
     elements.save.disabled = false;
     elements.delete.disabled = false;
     state.isDirty = false;
+    saveSelectedNote();
     setSaveStatus('Guardado');
     renderNotes();
   } catch (error) {
@@ -581,6 +614,7 @@ async function createNewNote(directoryHandle = state.directoryHandle, folder = '
     elements.noteView.classList.remove('hidden');
     elements.currentNoteLabel.textContent = folder ? `${folder}/${fileName}` : fileName;
     state.isDirty = false;
+    saveSelectedNote();
     renderNotes();
     elements.title.focus();
     elements.title.select();
@@ -677,6 +711,7 @@ async function moveNoteEntry(noteEntry, targetFolder) {
 
   if (state.currentNote?.name === noteEntry.name && state.currentNote?.folder === noteEntry.folder) {
     state.currentNote = { name: targetName, folder: targetFolder, directoryHandle: target.directoryHandle, fileHandle: targetHandle, note };
+    saveSelectedNote();
     elements.currentNoteLabel.textContent = targetFolder ? `${targetFolder}/${targetName}` : targetName;
     updateFolderSelect(targetFolder);
   }
@@ -718,6 +753,7 @@ async function deleteCurrentNote() {
     }
     await state.currentNote.directoryHandle.removeEntry(state.currentNote.name);
     state.currentNote = null;
+    clearSelectedNote();
     state.isDirty = false;
     elements.title.value = '';
     quill.setContents({ ops: [] });
@@ -816,6 +852,7 @@ async function writeCurrentNote() {
   }
 
   state.isDirty = false;
+  saveSelectedNote();
   setSaveStatus('Guardado ahora');
   await loadNotes();
   await saveNoteOrder();
