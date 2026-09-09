@@ -4,7 +4,9 @@ const state = {
   folders: [],
   groupColors: {},
   noteOrder: [],
+  folderOrder: [],
   draggedNote: null,
+  draggedFolder: null,
   collapsedFolders: new Set(),
   currentNote: null,
   saveTimer: null,
@@ -298,7 +300,7 @@ function noteKey(note) {
 }
 
 function compareNotes(first, second) {
-  const folderComparison = first.folder.localeCompare(second.folder);
+  const folderComparison = compareFolderNames(first.folder, second.folder);
   if (folderComparison !== 0) return folderComparison;
   const firstOrder = state.noteOrder.indexOf(noteKey(first));
   const secondOrder = state.noteOrder.indexOf(noteKey(second));
@@ -310,9 +312,37 @@ function compareNotes(first, second) {
   return second.modified - first.modified || first.title.localeCompare(second.title);
 }
 
+function compareFolderNames(first, second) {
+  if (first === '') return -1;
+  if (second === '') return 1;
+  const firstOrder = state.folderOrder.indexOf(first);
+  const secondOrder = state.folderOrder.indexOf(second);
+  if (firstOrder !== -1 || secondOrder !== -1) {
+    if (firstOrder === -1) return 1;
+    if (secondOrder === -1) return -1;
+    if (firstOrder !== secondOrder) return firstOrder - secondOrder;
+  }
+  return first.localeCompare(second);
+}
+
 function saveNoteOrder() {
   state.noteOrder = state.notes.map(noteKey);
   return saveGroupColors();
+}
+
+async function reorderFolders(sourceFolder, targetFolder) {
+  const availableFolders = state.folders.map((folder) => folder.name);
+  const orderedFolders = [...new Set([...state.folderOrder, ...availableFolders])]
+    .filter((folder) => availableFolders.includes(folder));
+  const sourceIndex = orderedFolders.indexOf(sourceFolder);
+  const targetIndex = orderedFolders.indexOf(targetFolder);
+  if (sourceIndex === -1 || targetIndex === -1 || sourceFolder === targetFolder) return;
+  orderedFolders.splice(sourceIndex, 1);
+  orderedFolders.splice(orderedFolders.indexOf(targetFolder), 0, sourceFolder);
+  state.folderOrder = orderedFolders;
+  await saveGroupColors();
+  state.notes.sort((first, second) => compareNotes(first, second));
+  renderNotes();
 }
 
 async function collectNotes(directoryHandle, folder, loadedNotes) {
@@ -403,7 +433,7 @@ function renderNotes() {
   });
   if (hasRenderedNotesGroup) elements.notesList.append(createNoteDropZone(currentFolder));
 
-  state.folders
+  [...state.folders].sort((first, second) => compareFolderNames(first.name, second.name))
     .filter((folder) => !filteredNotes.some((note) => note.folder === folder.name))
     .forEach((folder) => elements.notesList.append(createFolderLabel(folder.name)));
 
@@ -437,10 +467,29 @@ function createFolderLabel(folderName) {
   const isCollapsed = state.collapsedFolders.has(folderKey);
   const groupColor = state.groupColors[folderKey] || '#73777d';
   groupLabel.className = 'note-group-label';
+  groupLabel.draggable = folderKey !== '';
   groupLabel.style.setProperty('--group-color', groupColor);
   groupLabel.tabIndex = 0;
   groupLabel.setAttribute('role', 'button');
+  groupLabel.addEventListener('dragstart', (event) => {
+    if (!groupLabel.draggable) return;
+    state.draggedFolder = folderKey;
+    groupLabel.classList.add('dragging');
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/plain', folderKey || 'General');
+  });
+  groupLabel.addEventListener('dragend', () => {
+    state.draggedFolder = null;
+    groupLabel.classList.remove('dragging');
+    document.querySelectorAll('.note-group-label').forEach((element) => element.classList.remove('drag-over'));
+  });
   groupLabel.addEventListener('dragover', (event) => {
+    if (state.draggedFolder !== null) {
+      if (state.draggedFolder === folderKey) return;
+      event.preventDefault();
+      groupLabel.classList.add('drag-over');
+      return;
+    }
     if (!state.draggedNote || state.draggedNote.folder === folderKey) return;
     event.preventDefault();
     groupLabel.classList.add('drag-over');
@@ -449,6 +498,12 @@ function createFolderLabel(folderName) {
   groupLabel.addEventListener('drop', async (event) => {
     event.preventDefault();
     groupLabel.classList.remove('drag-over');
+    if (state.draggedFolder !== null) {
+      const sourceFolder = state.draggedFolder;
+      state.draggedFolder = null;
+      await reorderFolders(sourceFolder, folderKey);
+      return;
+    }
     if (state.draggedNote && state.draggedNote.folder !== folderKey) {
       await moveNoteEntry(state.draggedNote, folderKey);
     }
@@ -790,6 +845,7 @@ async function loadGroupColors() {
     const config = configText.trim() ? JSON.parse(configText) : {};
     state.groupColors = config.groupColors || {};
     state.noteOrder = Array.isArray(config.noteOrder) ? config.noteOrder : [];
+    state.folderOrder = Array.isArray(config.folderOrder) ? config.folderOrder : [];
   } catch (error) {
     state.groupColors = {};
     console.warn('No se pudo cargar la configuración de colores.', error);
@@ -798,7 +854,12 @@ async function loadGroupColors() {
 
 async function saveGroupColors() {
   const configHandle = await state.directoryHandle.getFileHandle(GROUP_CONFIG_FILE, { create: true });
-  await writeFile(configHandle, { version: 1, groupColors: state.groupColors, noteOrder: state.noteOrder });
+  await writeFile(configHandle, {
+    version: 1,
+    groupColors: state.groupColors,
+    noteOrder: state.noteOrder,
+    folderOrder: state.folderOrder,
+  });
 }
 
 async function getAvailableFileName(title, currentName, directoryHandle) {

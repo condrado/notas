@@ -63,7 +63,8 @@ h1 { margin: 0; font-size: 28px; letter-spacing: -.04em; }
 .notes-heading { margin: 29px 10px 9px; color: var(--muted); font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
 .count-badge { display: grid; place-items: center; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 10px; color: var(--muted); background: #e8eaed; font-size: 10px; letter-spacing: 0; }
 .notes-list { display: grid; flex: 1; gap: 3px; min-height: 0; overflow-y: auto; align-content: start; }
-.note-group-label { position: relative; display: flex; align-items: center; justify-content: space-between; margin: 14px 0 3px; padding-left: 7px; border-bottom: 3px solid var(--group-color); color: var(--muted); font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; cursor: pointer; }
+.note-group-label { position: relative; display: flex; align-items: center; justify-content: space-between; margin: 14px 0 3px; padding-left: 7px; border-bottom: 3px solid var(--group-color); color: var(--muted); font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; cursor: grab; }
+.note-group-label.dragging { opacity: .45; cursor: grabbing; }
 .note-group-label:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
 .folder-label-text { display: inline-flex; align-items: center; gap: 4px; }
 .group-actions { display: inline-flex; align-items: center; gap: 3px; }
