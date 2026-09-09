@@ -3,8 +3,7 @@ name: Incrementar version
 on:
   push:
     branches:
-      - main
-      - master
+      - '**'
 
 permissions:
   contents: write
@@ -25,7 +24,12 @@ jobs:
           node-version: 20
 
       - name: Incrementar version
-        run: node scripts/bump-version.mjs "${{ github.event.head_commit.message }}"
+        run: |
+          if git diff-tree --no-commit-id --name-only -r "$GITHUB_SHA" | grep -qx 'package.json'; then
+            echo "La version ya forma parte del commit enviado"
+            exit 0
+          fi
+          node scripts/bump-version.mjs "${{ github.event.head_commit.message }}"
 
       - name: Publicar nueva version
         run: |
@@ -35,6 +39,6 @@ jobs:
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add package.json README.md
+          git add package.json README.md index.html
           git commit -m "chore: incrementar version [skip ci]"
           git push

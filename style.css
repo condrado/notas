@@ -139,6 +139,7 @@ h1 { margin: 0; font-size: 28px; letter-spacing: -.04em; }
 .ql-resize-handle.bl { bottom: -5px; left: -5px; cursor: nesw-resize; }
 .ql-resize-display { position: absolute; z-index: 22; border-radius: 4px; color: #fff; background: #202124e6 !important; font-size: 11px !important; pointer-events: none; }
 .hidden { display: none !important; }
+.app-version { position: fixed; right: 14px; bottom: 10px; z-index: 30; color: var(--muted); font-size: 11px; line-height: 1; opacity: .5; pointer-events: none; user-select: none; }
 .toast { position: fixed; right: 24px; bottom: 24px; max-width: 340px; padding: 12px 16px; border-radius: 8px; color: #fff; background: #25282c; box-shadow: 0 7px 24px #0000002b; font-size: 13px; opacity: 0; pointer-events: none; transform: translateY(8px); transition: opacity .2s ease, transform .2s ease; }
 .toast.visible { opacity: 1; transform: translateY(0); }
 .toast.error { background: var(--danger); }

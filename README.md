@@ -21,3 +21,11 @@ git commit -m "feat(major): rediseñar el editor"
 ```
 
 La versión fuente se guarda en `package.json` y la Action mantiene también actualizada esta sección del README.
+
+Para que la versión se incluya en el mismo commit antes del `push`, ejecuta una vez:
+
+```bash
+npm install
+```
+
+El hook local actualizará `package.json`, README e interfaz según el mensaje del commit. La GitHub Action queda como respaldo si el commit se realiza desde otro entorno.

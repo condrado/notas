@@ -4,6 +4,7 @@
   "private": true,
   "description": "Aplicacion web estatica para escribir y organizar notas localmente.",
   "scripts": {
-    "version:bump": "node scripts/bump-version.mjs"
+    "version:bump": "node scripts/bump-version.mjs",
+    "prepare": "git config core.hooksPath .githooks"
   }
 }
