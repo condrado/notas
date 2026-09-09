@@ -1,4 +1,4 @@
-const CACHE_NAME = 'notas-v4';
+const CACHE_NAME = 'notas-v5';
 const APP_SHELL = [
   './',
   './index.html',
@@ -6,6 +6,8 @@ const APP_SHELL = [
   './app.js',
   './manifest.webmanifest',
   './logo-n.png',
+  './logo-n-no-borde.png',
+  './logo-n-no-borde-dark.png',
 ];
 
 self.addEventListener('install', (event) => {

@@ -27,6 +27,7 @@ const elements = {
   welcomeOpen: document.querySelector('#welcome-open-button'),
   newNote: document.querySelector('#new-note-button'),
   newFolder: document.querySelector('#new-folder-button'),
+  themeToggle: document.querySelector('#theme-toggle'),
   save: document.querySelector('#save-button'),
   delete: document.querySelector('#delete-button'),
   search: document.querySelector('#search-input'),
@@ -72,6 +73,23 @@ const quill = new Quill('#editor', {
     },
   },
 });
+
+function applyTheme(theme) {
+  const isDark = theme === 'dark';
+  document.documentElement.dataset.theme = isDark ? 'dark' : 'light';
+  document.querySelector('.brand-icon').src = isDark ? 'logo-n-no-borde-dark.png' : 'logo-n-no-borde.png';
+  elements.themeToggle.title = isDark ? 'Activar modo claro' : 'Activar modo oscuro';
+  elements.themeToggle.setAttribute('aria-label', elements.themeToggle.title);
+  elements.themeToggle.innerHTML = `<i data-lucide="${isDark ? 'sun' : 'moon'}" aria-hidden="true"></i>`;
+  document.querySelector('meta[name="theme-color"]').content = isDark ? '#202124' : '#f6f7f9';
+  lucide.createIcons();
+}
+
+function initializeTheme() {
+  const savedTheme = window.localStorage.getItem('notas-theme');
+  const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  applyTheme(savedTheme || systemTheme);
+}
 
 if ('serviceWorker' in navigator && ['http:', 'https:'].includes(window.location.protocol)) {
   window.addEventListener('load', async () => {
@@ -849,6 +867,11 @@ elements.openFolder.addEventListener('click', openNotesFolder);
 elements.welcomeOpen.addEventListener('click', createNoteFromWelcome);
 elements.newNote.addEventListener('click', createNewNote);
 elements.newFolder.addEventListener('click', createNewFolder);
+elements.themeToggle.addEventListener('click', () => {
+  const nextTheme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+  window.localStorage.setItem('notas-theme', nextTheme);
+  applyTheme(nextTheme);
+});
 elements.folderSelect.addEventListener('change', moveCurrentNote);
 elements.delete.addEventListener('click', deleteCurrentNote);
 elements.save.addEventListener('click', () => {
@@ -864,6 +887,7 @@ quill.on('text-change', (change, oldChange, source) => {
 });
 quill.root.addEventListener('paste', handleImagePaste);
 lucide.createIcons();
+initializeTheme();
 restoreNotesFolder();
 
 window.addEventListener('beforeunload', (event) => {
