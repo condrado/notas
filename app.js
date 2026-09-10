@@ -21,6 +21,7 @@ const DIRECTORY_STORE_NAME = 'handles';
 const SELECTED_NOTE_STORAGE_KEY = 'notas-selected-note';
 const SIDEBAR_LAYOUT_STORAGE_KEY = 'notas-sidebar-layout';
 const FONT_SCALE_STORAGE_KEY = 'notas-font-scale';
+const DENSITY_STORAGE_KEY = 'notas-density';
 const GROUP_COLORS = [
   '#6b7280', '#ef4444', '#f97316', '#f59e0b', '#eab308',
   '#84cc16', '#22c55e', '#10b981', '#14b8a6', '#06b6d4',
@@ -58,6 +59,11 @@ const elements = {
   fontZoomOut: document.querySelector('#font-zoom-out'),
   fontZoomReset: document.querySelector('#font-zoom-reset'),
   fontZoomIn: document.querySelector('#font-zoom-in'),
+  densityComfortable: document.querySelector('#density-comfortable'),
+  densityCompact: document.querySelector('#density-compact'),
+  compactScrollUp: document.querySelector('#compact-scroll-up'),
+  compactScrollDown: document.querySelector('#compact-scroll-down'),
+  compactScrollFade: document.querySelector('.compact-scroll-fade'),
 };
 
 let compactTooltip = null;
@@ -144,6 +150,38 @@ function initializeFontScale() {
   applyFontScale(Number.isFinite(savedScale) ? savedScale : 1);
 }
 
+function applyDensity(density) {
+  const selectedDensity = density === 'compact' ? 'compact' : 'comfortable';
+  document.documentElement.dataset.density = selectedDensity;
+  elements.densityComfortable.setAttribute('aria-pressed', String(selectedDensity === 'comfortable'));
+  elements.densityCompact.setAttribute('aria-pressed', String(selectedDensity === 'compact'));
+  window.localStorage.setItem(DENSITY_STORAGE_KEY, selectedDensity);
+}
+
+function initializeDensity() {
+  applyDensity(window.localStorage.getItem(DENSITY_STORAGE_KEY));
+}
+
+function updateCompactScrollControls() {
+  const { scrollTop, scrollHeight, clientHeight } = elements.notesList;
+  const hasHiddenAbove = scrollTop > 1;
+  const hasHiddenBelow = scrollTop + clientHeight < scrollHeight - 1;
+  const hasScroll = scrollHeight > clientHeight + 1;
+  const sidebarBounds = elements.sidebar.getBoundingClientRect();
+  const notesBounds = elements.notesList.getBoundingClientRect();
+  elements.sidebar.style.setProperty('--compact-notes-top', `${notesBounds.top - sidebarBounds.top}px`);
+  elements.sidebar.style.setProperty('--compact-notes-bottom', `${sidebarBounds.bottom - notesBounds.bottom}px`);
+  elements.sidebar.dataset.scrollable = String(hasScroll);
+  elements.compactScrollUp.hidden = !hasScroll;
+  elements.compactScrollDown.hidden = !hasScroll;
+  elements.sidebar.dataset.scrollAbove = String(hasHiddenAbove);
+  elements.sidebar.dataset.scrollBelow = String(hasHiddenBelow);
+}
+
+function scrollCompactNotes(distance) {
+  elements.notesList.scrollBy({ top: distance, behavior: 'smooth' });
+}
+
 function applySidebarLayout(layout) {
   const layouts = ['full', 'split', 'compact'];
   const selectedLayout = layouts.includes(layout) ? layout : 'full';
@@ -160,6 +198,7 @@ function applySidebarLayout(layout) {
   elements.sidebarLayoutToggle.setAttribute('aria-label', elements.sidebarLayoutToggle.title);
   elements.sidebarLayoutToggle.innerHTML = `<i data-lucide="${icons[nextLayout]}" aria-hidden="true"></i>`;
   lucide.createIcons();
+  updateCompactScrollControls();
 }
 
 function initializeSidebarLayout() {
@@ -538,6 +577,7 @@ function renderNotes() {
     elements.folderList.replaceChildren(...groupNames.map((folderName) => createFolderLabel(folderName || 'General')));
   }
   lucide.createIcons();
+  updateCompactScrollControls();
 }
 
 function createNoteDropZone(folderName) {
@@ -1106,6 +1146,12 @@ elements.fontZoomIn.addEventListener('click', () => {
   const currentScale = Number.parseFloat(window.getComputedStyle(document.documentElement).fontSize) / 16;
   applyFontScale(currentScale + 0.125);
 });
+elements.densityComfortable.addEventListener('click', () => applyDensity('comfortable'));
+elements.densityCompact.addEventListener('click', () => applyDensity('compact'));
+elements.compactScrollUp.addEventListener('click', () => scrollCompactNotes(-152));
+elements.compactScrollDown.addEventListener('click', () => scrollCompactNotes(152));
+elements.notesList.addEventListener('scroll', updateCompactScrollControls, { passive: true });
+window.addEventListener('resize', updateCompactScrollControls);
 elements.toolsMenuButton.addEventListener('click', (event) => {
   event.stopPropagation();
   const isOpen = !elements.toolsMenu.hidden;
@@ -1141,6 +1187,7 @@ quill.root.addEventListener('paste', handleImagePaste);
 lucide.createIcons();
 initializeTheme();
 initializeFontScale();
+initializeDensity();
 initializeSidebarLayout();
 restoreNotesFolder();
 

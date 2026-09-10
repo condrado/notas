@@ -34,7 +34,7 @@
           <input id="search-input" type="search" placeholder="Buscar notas" autocomplete="off" disabled>
         </label>
         <div class="tools-menu-container">
-          <button id="tools-menu-button" class="icon-button folder-button" type="button" title="Herramientas" aria-label="Herramientas" aria-expanded="false" aria-controls="tools-menu"><i data-lucide="wrench" aria-hidden="true"></i></button>
+          <button id="tools-menu-button" class="icon-button folder-button" type="button" title="Herramientas" aria-label="Herramientas" aria-expanded="false" aria-controls="tools-menu"><i data-lucide="settings" aria-hidden="true"></i></button>
           <div id="tools-menu" class="folder-menu" hidden>
             <div class="tools-menu-label">Zoom del texto</div>
             <div class="zoom-controls">
@@ -48,6 +48,11 @@
               <input id="theme-switch" type="checkbox" aria-label="Activar modo oscuro">
               <span class="theme-switch-track" aria-hidden="true"><span class="theme-switch-thumb"></span></span>
             </label>
+            <div class="tools-menu-label">Densidad</div>
+            <div class="density-controls">
+              <button id="density-comfortable" class="density-control" type="button" aria-pressed="true">Cómoda</button>
+              <button id="density-compact" class="density-control" type="button" aria-pressed="false">Compacta</button>
+            </div>
           </div>
         </div>
       </div>
@@ -58,6 +63,7 @@
       </div>
       <nav id="folder-list" class="folder-list" aria-label="Lista de grupos"></nav>
       <nav id="notes-list" class="notes-list" aria-label="Lista de notas"></nav>
+      <div class="compact-scroll-fade" aria-hidden="true"></div>
       <div id="empty-notes" class="empty-notes">
         <span class="empty-icon" aria-hidden="true"><i data-lucide="sparkles"></i></span>
         <p>Abre una carpeta para ver tus notas.</p>
@@ -70,6 +76,10 @@
         </button>
         <div class="sidebar-footer">
           <button id="sidebar-layout-toggle" class="icon-button layout-button" type="button" title="Cambiar diseño del sidebar" aria-label="Cambiar diseño del sidebar"><i data-lucide="panel-left" aria-hidden="true"></i></button>
+          <div class="compact-scroll-controls" aria-label="Desplazar notas">
+            <button id="compact-scroll-up" class="compact-scroll-button" type="button" title="Subir en la lista" aria-label="Subir en la lista"><i data-lucide="chevron-up" aria-hidden="true"></i></button>
+            <button id="compact-scroll-down" class="compact-scroll-button" type="button" title="Bajar en la lista" aria-label="Bajar en la lista"><i data-lucide="chevron-down" aria-hidden="true"></i></button>
+          </div>
           <span id="folder-status" class="status-dot"></span>
           <span id="folder-name">Ninguna carpeta abierta</span>
         </div>
