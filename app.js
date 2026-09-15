@@ -22,6 +22,7 @@ const SELECTED_NOTE_STORAGE_KEY = 'notas-selected-note';
 const SIDEBAR_LAYOUT_STORAGE_KEY = 'notas-sidebar-layout';
 const FONT_SCALE_STORAGE_KEY = 'notas-font-scale';
 const DENSITY_STORAGE_KEY = 'notas-density';
+const COLLAPSED_FOLDERS_STORAGE_KEY = 'notas-collapsed-folders';
 const GROUP_COLORS = [
   '#6b7280', '#ef4444', '#f97316', '#f59e0b', '#eab308',
   '#84cc16', '#22c55e', '#10b981', '#14b8a6', '#06b6d4',
@@ -160,6 +161,19 @@ function applyDensity(density) {
 
 function initializeDensity() {
   applyDensity(window.localStorage.getItem(DENSITY_STORAGE_KEY));
+}
+
+function initializeCollapsedFolders() {
+  try {
+    const savedFolders = JSON.parse(window.localStorage.getItem(COLLAPSED_FOLDERS_STORAGE_KEY) || '[]');
+    state.collapsedFolders = new Set(Array.isArray(savedFolders) ? savedFolders.filter((folder) => typeof folder === 'string') : []);
+  } catch {
+    state.collapsedFolders = new Set();
+  }
+}
+
+function saveCollapsedFolders() {
+  window.localStorage.setItem(COLLAPSED_FOLDERS_STORAGE_KEY, JSON.stringify([...state.collapsedFolders]));
 }
 
 function updateCompactScrollControls() {
@@ -514,7 +528,7 @@ function renderNotes() {
   let hasRenderedNotesGroup = false;
   notesToRender.forEach((note) => {
     if (note.folder !== currentFolder) {
-      if (hasRenderedNotesGroup) elements.notesList.append(createNoteDropZone(currentFolder));
+      if (hasRenderedNotesGroup && isSplitLayout) elements.notesList.append(createNoteDropZone(currentFolder));
       currentFolder = note.folder;
       if (currentFolder && !isSplitLayout) {
         elements.notesList.append(createFolderLabel(currentFolder));
@@ -562,7 +576,7 @@ function renderNotes() {
     });
     elements.notesList.append(button);
   });
-  if (hasRenderedNotesGroup) elements.notesList.append(createNoteDropZone(currentFolder));
+  if (hasRenderedNotesGroup && isSplitLayout) elements.notesList.append(createNoteDropZone(currentFolder));
 
   [...state.folders].sort((first, second) => compareFolderNames(first.name, second.name))
     .filter((folder) => !filteredNotes.some((note) => note.folder === folder.name))
@@ -665,6 +679,7 @@ function createFolderLabel(folderName) {
     }
     if (state.collapsedFolders.has(folderKey)) state.collapsedFolders.delete(folderKey);
     else state.collapsedFolders.add(folderKey);
+    saveCollapsedFolders();
     renderNotes();
   });
   const folderNameElement = document.createElement('span');
@@ -1188,6 +1203,7 @@ lucide.createIcons();
 initializeTheme();
 initializeFontScale();
 initializeDensity();
+initializeCollapsedFolders();
 initializeSidebarLayout();
 restoreNotesFolder();
 
