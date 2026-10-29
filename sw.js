@@ -1,4 +1,4 @@
-const CACHE_NAME = 'notas-v5';
+const CACHE_NAME = 'notas-v6';
 const APP_SHELL = [
   './',
   './index.html',
