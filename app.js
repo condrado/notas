@@ -309,9 +309,10 @@ async function activateNotesFolder(handle, showMessage = false, folderPath = han
   if (selectionVersion !== state.folderSelectionVersion) return false;
   state.directoryHandle = handle;
   elements.folderName.textContent = handle.name;
-  elements.folderName.title = folderPath;
-  elements.folderName.dataset.tooltip = `Ruta relativa: ${folderPath}`;
-  elements.folderName.setAttribute('aria-label', `Carpeta de notas: ${folderPath}`);
+  elements.folderName.removeAttribute('title');
+  delete elements.folderName.dataset.tooltip;
+  elements.folderName.setAttribute('aria-label', `Carpeta de notas: ${handle.name}`);
+  hideCompactTooltip();
   elements.folderStatus.classList.add('connected');
   elements.newNote.disabled = false;
   elements.newFolder.disabled = false;
