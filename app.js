@@ -121,6 +121,7 @@ const quill = new Quill('#editor', {
     },
   },
 });
+document.querySelector('.note-sticky-header').append(quill.getModule('toolbar').container);
 
 function applyTheme(theme) {
   const isDark = theme === 'dark';

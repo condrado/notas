@@ -156,7 +156,8 @@ h1 { margin: 0; font-size: 1.75rem; letter-spacing: -.04em; }
 .welcome-mark { display: grid; place-items: center; width: 64px; height: 64px; margin-bottom: 20px; border-radius: 18px; color: var(--accent); background: var(--accent-soft); font-size: 29px; }
 .welcome-view h2 { margin: 0 0 10px; font-size: 26px; letter-spacing: -.03em; }
 .welcome-view p { max-width: 360px; margin: 0 0 24px; color: var(--muted); font-size: 14px; line-height: 1.6; }
-.note-view { width: 100%; height: calc(100vh - 74px); min-height: calc(100vh - 74px); margin: 0; padding: 62px clamp(26px, 7vw, 95px) 35px; }
+.note-view { width: 100%; min-height: calc(100vh - 74px); margin: 0; padding: 62px clamp(26px, 7vw, 95px) 35px; }
+.note-sticky-header { position: sticky; z-index: 9; top: 74px; display: flow-root; background: var(--surface); }
 .note-title { width: 100%; margin: 0 0 25px; padding: 0; border: 0; outline: 0; color: var(--ink); font-size: clamp(29px, 4vw, 42px); font-weight: 700; letter-spacing: -.05em; }
 .note-title::placeholder { color: #d2d5d8; }
 .note-controls { display: flex; align-items: center; gap: 10px; margin: -12px 0 22px; color: var(--muted); font-size: 12px; }
