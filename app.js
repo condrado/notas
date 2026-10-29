@@ -1,5 +1,6 @@
 const state = {
   directoryHandle: null,
+  folderSelectionVersion: 0,
   notes: [],
   folders: [],
   groupColors: {},
@@ -18,6 +19,7 @@ const NOTES_DIRECTORY_NAME = 'notas-data';
 const GROUP_CONFIG_FILE = '.notas-config.json';
 const DIRECTORY_DATABASE_NAME = 'notas';
 const DIRECTORY_STORE_NAME = 'handles';
+const DIRECTORY_DISPLAY_PATH_STORAGE_KEY = 'notas-directory-display-path';
 const SELECTED_NOTE_STORAGE_KEY = 'notas-selected-note';
 const SIDEBAR_LAYOUT_STORAGE_KEY = 'notas-sidebar-layout';
 const FONT_SCALE_STORAGE_KEY = 'notas-font-scale';
@@ -79,7 +81,8 @@ function getCompactTooltip() {
 }
 
 function showCompactTooltip(target) {
-  if (document.documentElement.dataset.sidebarLayout !== 'compact' || !target?.dataset.tooltip) return;
+  if (!target?.dataset.tooltip) return;
+  if (document.documentElement.dataset.sidebarLayout !== 'compact' && target.id !== 'folder-name') return;
   const tooltip = getCompactTooltip();
   const bounds = target.getBoundingClientRect();
   tooltip.textContent = target.dataset.tooltip;
@@ -299,12 +302,16 @@ async function getStoredDirectoryHandle() {
   });
 }
 
-async function activateNotesFolder(handle, showMessage = false) {
+async function activateNotesFolder(handle, showMessage = false, folderPath = handle.name, selectionVersion = state.folderSelectionVersion) {
   if (!(await verifyPermission(handle, true))) {
     throw new Error('Permiso de escritura denegado.');
   }
+  if (selectionVersion !== state.folderSelectionVersion) return false;
   state.directoryHandle = handle;
-  elements.folderName.textContent = `${NOTES_DIRECTORY_NAME}/`;
+  elements.folderName.textContent = handle.name;
+  elements.folderName.title = folderPath;
+  elements.folderName.dataset.tooltip = `Ruta relativa: ${folderPath}`;
+  elements.folderName.setAttribute('aria-label', `Carpeta de notas: ${folderPath}`);
   elements.folderStatus.classList.add('connected');
   elements.newNote.disabled = false;
   elements.newFolder.disabled = false;
@@ -315,7 +322,9 @@ async function activateNotesFolder(handle, showMessage = false) {
   elements.openFolder.hidden = true;
   elements.welcomeOpen.hidden = true;
   await loadNotes();
-  if (showMessage) showToast(`Usando la carpeta ${NOTES_DIRECTORY_NAME}/.`);
+  if (selectionVersion !== state.folderSelectionVersion) return false;
+  if (showMessage) showToast(`Usando la carpeta ${handle.name}/.`);
+  return true;
 }
 
 async function openNotesFolder() {
@@ -329,18 +338,25 @@ async function openNotesFolder() {
     const pickerOptions = { id: NOTES_DIRECTORY_NAME, mode: 'readwrite' };
     if (storedHandle) pickerOptions.startIn = storedHandle;
     const selectedHandle = await window.showDirectoryPicker(pickerOptions);
+    const selectionVersion = ++state.folderSelectionVersion;
     let handle = selectedHandle;
+    let folderPath = selectedHandle.name;
     if (selectedHandle.name !== NOTES_DIRECTORY_NAME) {
       try {
         handle = await selectedHandle.getDirectoryHandle(NOTES_DIRECTORY_NAME);
+        folderPath = `${selectedHandle.name}/${handle.name}`;
       } catch (error) {
         if (error.name !== 'NotFoundError') throw error;
         showToast(`No existe ${NOTES_DIRECTORY_NAME}/. Elige ahora la carpeta donde guardar tus notas.`);
         handle = await window.showDirectoryPicker({ id: NOTES_DIRECTORY_NAME, mode: 'readwrite' });
+        folderPath = handle.name;
       }
     }
-    await activateNotesFolder(handle, true);
+    const activated = await activateNotesFolder(handle, true, folderPath, selectionVersion);
+    if (!activated) return;
     await storeDirectoryHandle(handle);
+    if (selectionVersion !== state.folderSelectionVersion) return;
+    window.localStorage.setItem(DIRECTORY_DISPLAY_PATH_STORAGE_KEY, folderPath);
   } catch (error) {
     if (error.name !== 'AbortError') {
       const message = error.name === 'NotFoundError'
@@ -352,11 +368,15 @@ async function openNotesFolder() {
 }
 
 function restoreNotesFolder() {
+  const selectionVersion = state.folderSelectionVersion;
   getStoredDirectoryHandle()
     .then((handle) => {
-      if (!handle) return null;
+      if (!handle || selectionVersion !== state.folderSelectionVersion) return null;
       return handle.queryPermission({ mode: 'readwrite' }).then((permission) => {
-        if (permission === 'granted') return activateNotesFolder(handle);
+        if (permission === 'granted' && selectionVersion === state.folderSelectionVersion) {
+          const folderPath = window.localStorage.getItem(DIRECTORY_DISPLAY_PATH_STORAGE_KEY) || handle.name;
+          return activateNotesFolder(handle, false, folderPath, selectionVersion);
+        }
         return null;
       });
     })
